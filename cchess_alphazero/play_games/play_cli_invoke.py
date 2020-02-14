@@ -8,7 +8,7 @@ from cchess_alphazero.agent.model import CChessModel
 from cchess_alphazero.agent.player import CChessPlayer, VisitState
 from cchess_alphazero.config import Config
 from cchess_alphazero.environment.env import CChessEnv
-from cchess_alphazero.environment.lookup_tables import ActionLabelsRed, flip_move
+from cchess_alphazero.environment.lookup_tables import flip_move
 from cchess_alphazero.lib.model_helper import load_best_model_weight
 from cchess_alphazero.lib.tf_util import set_session_config
 
@@ -68,19 +68,12 @@ class PlayWithHuman:
                                enable_resign=True, debugging=False)
         self.human_move_first = human_first
 
-        labels = ActionLabelsRed
-        labels_n = len(ActionLabelsRed)
-
         self.env.board.print_to_cl()
 
-        # The callback for when the client receives a CONNACK response from the server.
         def on_connect(client, userdata, flags, rc):
             print("Connected with result code " + str(rc))
-            # Subscribing in on_connect() means that if we lose the connection and
-            # reconnect then subscriptions will be renewed.
             client.subscribe(receive_topic_name)
 
-        # The callback for when a PUBLISH message is received from the server.
         def on_message(client, userdata, msg):
             print(msg.topic + " " + str(msg.payload))
             if self.env.board.is_end():
@@ -90,9 +83,6 @@ class PlayWithHuman:
                 client.disconnect()
 
             data = json.loads(msg.payload)
-            # if "action" in data.keys() and len(data["action"]) > 0:
-            #     print(f"not correct message {message}")
-            #     return
             self.env.board.calc_chessmans_moving_list()
             is_correct_chessman = False
             is_correct_position = False
@@ -132,9 +122,7 @@ class PlayWithHuman:
             client.publish(topic=send_topic_name, payload=json.dumps(response), qos=0)
 
         client = mqtt.Client()
-
         client.on_connect = on_connect
         client.on_message = on_message
-
         client.connect("127.0.0.1", 1883, 60)
         client.loop_forever()
