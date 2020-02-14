@@ -1,4 +1,4 @@
-该项目fork [ChineseChess-AlphaZero](#https://github.com/NeymarL/ChineseChess-AlphaZero)
+该项目fork [ChineseChess-AlphaZero](https://github.com/NeymarL/ChineseChess-AlphaZero)
 
 ChineseChess-AlphaZero为象棋版的AlphaZero模型。
 
@@ -9,7 +9,7 @@ ChineseChess-AlphaZero为象棋版的AlphaZero模型。
 * 链接ActiveMQ消息队列，用来接收客户端发送的红棋操作
 * 后端模型根据消息队列接收的操作，预测黑棋操作，并将消息发送至消息队列
 
-本项目需要配合前端安卓端同时使用，安卓端链接：[点击](#https://github.com/baifachuan/ChineseChess-Android)
+本项目需要配合前端安卓端同时使用，安卓端链接：[点击](https://github.com/baifachuan/ChineseChess-Android)
 
 使用步骤：
 
