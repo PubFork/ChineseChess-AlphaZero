@@ -11,6 +11,13 @@ ChineseChess-AlphaZero为象棋版的AlphaZero模型。
 
 本项目需要配合前端安卓端同时使用，安卓端链接：[点击](https://github.com/baifachuan/ChineseChess-Android)
 
+准备工作：
+
+* 提供一个ActiveMQ消息队列服务器
+* 创建 `receive_topic_name` 和 `send_topic_name` topic
+* 修改 `play_cli_invoke.py` 中 127 行的IP地址为自己的消息服务器的地址
+* 运行 web下的 `web_server.py` 文件，启动服务器
+
 使用步骤：
 
 * 后端启动web_server.py服务器
