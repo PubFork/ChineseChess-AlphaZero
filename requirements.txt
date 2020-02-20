@@ -10,3 +10,5 @@ pygame
 requests
 tqdm
 stomp.py
+redis
+sqlalchemy

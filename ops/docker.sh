@@ -18,3 +18,8 @@ docker run --name='activemq' -d \
 -p 61613:61613 \
 -p 61614:61614 \
 webcenter/activemq:5.14.3
+
+
+
+
+docker run -itd --name redis-test -p 6379:6379 redis

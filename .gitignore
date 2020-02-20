@@ -7,3 +7,4 @@ Icon*
 .vscode
 *.icloud
 .idea/
+web/chess.db

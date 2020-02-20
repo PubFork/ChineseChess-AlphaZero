@@ -1,9 +1,7 @@
 import json
 from collections import defaultdict
 from logging import getLogger
-
 import paho.mqtt.client as mqtt
-
 from cchess_alphazero.agent.model import CChessModel
 from cchess_alphazero.agent.player import CChessPlayer, VisitState
 from cchess_alphazero.config import Config
@@ -11,16 +9,13 @@ from cchess_alphazero.environment.env import CChessEnv
 from cchess_alphazero.environment.lookup_tables import flip_move
 from cchess_alphazero.lib.model_helper import load_best_model_weight
 from cchess_alphazero.lib.tf_util import set_session_config
+from web.config import UserConfigEncoder
+from web.network_helper import NetWorkConnection
 
 try:
     import queue
 except ImportError:
     import Queue as queue
-
-receive_topic_name = 'receive_topic_name'
-send_topic_name = 'send_topic_name'
-
-listener_name = 'receive_topic_name_listener'
 
 logger = getLogger(__name__)
 
@@ -38,11 +33,13 @@ class ActionResponse():
 
 message_queue = queue.LifoQueue()
 
+network_helper = NetWorkConnection()
 
-def start(config: Config, human_move_first=True, user_id=None):
+
+def start(config: Config, human_move_first=True, user=None):
     set_session_config(per_process_gpu_memory_fraction=1, allow_growth=True, device_list="0")
     play = PlayWithHuman(config)
-    play.start(human_move_first, user_id=user_id)
+    play.start(human_move_first, user=user)
 
 
 class PlayWithHuman:
@@ -60,7 +57,7 @@ class PlayWithHuman:
         if self.config.opts.new or not load_best_model_weight(self.model):
             self.model.build()
 
-    def start(self, human_first=True, user_id=None):
+    def start(self, human_first=True, user=None):
         self.env.reset()
         self.load_model()
         self.pipe = self.model.get_pipes()
@@ -72,7 +69,10 @@ class PlayWithHuman:
 
         def on_connect(client, userdata, flags, rc):
             print("Connected with result code " + str(rc))
-            client.subscribe(receive_topic_name)
+            client.subscribe(network_helper.network_connection_config.mqtt_receive_topic_name)
+            print(f"save : {UserConfigEncoder().encode(user)}")
+            network_helper.get_redis_client().set(user.token, UserConfigEncoder().encode(user))
+            print(network_helper.get_redis_client().get(user.token))
 
         def on_message(client, userdata, msg):
             print(msg.topic + " " + str(msg.payload))
@@ -111,7 +111,8 @@ class PlayWithHuman:
                 response = {'id': data["id"], "current_x": 0, "current_y": 0, "target_x": 0, "target_y": 1,
                             "win": 1, "action": ""}
                 print("AI投降了!")
-                client.publish(topic=send_topic_name, payload=json.dumps(response), qos=0)
+                client.publish(topic=network_helper.network_connection_config.mqtt_send_topic_name,
+                               payload=json.dumps(response), qos=0)
                 return
             self.env.step(action)
             print(f"AI选择移动 {action}")
@@ -119,10 +120,8 @@ class PlayWithHuman:
             response = {'id': data["id"], "current_x": action[0], "current_y": action[1], "target_x": action[2],
                         "target_y": action[3], "win": -1,
                         "action": action}
-            client.publish(topic=send_topic_name, payload=json.dumps(response), qos=0)
+            client.publish(topic=network_helper.network_connection_config.mqtt_send_topic_name,
+                           payload=json.dumps(response), qos=0)
 
-        client = mqtt.Client()
-        client.on_connect = on_connect
-        client.on_message = on_message
-        client.connect("127.0.0.1", 1883, 60)
+        client = network_helper.get_message_queue_client(on_connect, on_message)
         client.loop_forever()

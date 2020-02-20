@@ -2,11 +2,15 @@ import json
 import multiprocessing as mp
 import os
 import sys
+import time
+import uuid
 
 from flask import Flask, request, Response
+from flask import abort
 
-from cchess_alphazero.config import Config
-from cchess_alphazero.lib.logger import setup_logger
+from web.config import UserConfigEncoder, UserConfig
+from web.game_service import GameService
+from web.user_service import UserService
 
 _PATH_ = os.path.dirname(os.path.dirname(__file__))
 
@@ -15,52 +19,57 @@ if _PATH_ not in sys.path:
 
 app = Flask(__name__)
 
-user_map = list()
+user_service = UserService()
+game_service = GameService()
 
 
 @app.route('/start', methods=['POST'])
 def start():
     content = json.loads(request.data)
     print(content)
-    topic_name = "demo"  # 使用一个topic来传递数据
-    create_topic(topic_name)
+    user = UserConfig(id=content['id'], user_name=content['user_name'], token=content['token'])
 
-    if content["id"] not in user_map:
-        print("not in ")
-        user_map.append(content["id"])
-        background_process = mp.Process(name='background_process', target=active_game,
-                                        args=(content, topic_name, content["id"]))
-        background_process.daemon = True
-        background_process.start()
-    else:
-        print("found")
+    if not user_service.verify_token(user.token):
+        abort(401)
+
+    if game_service.is_ready(user):
+        return Response(json.dumps(content), mimetype='application/json')
+
+    background_process = mp.Process(name='background_process',
+                                    target=game_service.active_game,
+                                    args=[user])
+    background_process.daemon = True
+    background_process.start()
+    while not game_service.is_ready(user):
+        print("waiting init game house")
+        time.sleep(3)
     return Response(json.dumps(content), mimetype='application/json')
 
 
-def create_topic(topic_name):
-    print("create_topic")
+
+@app.route('/login', methods=['POST'])
+def login():
+    content = json.loads(request.data)
+    user = user_service.login(content['user_name'], content['password'])
+    if user is not None:
+        return Response(init_user_game_info(user), mimetype='application/json')
+    else:
+        abort(404)
 
 
-def active_game(content=None, topic_name=None, user_id=-1):
-    mp.freeze_support()
-    sys.setrecursionlimit(10000)
-    config_type = 'distribute'
-    config = Config(config_type=config_type)
-    config.resource.create_directories()
-    setup_logger(config.resource.main_log_path)
-    config.internet.distributed = False
-    config.internet.username = "fcbai"
-    config.opts.device_list = 1
-    num_cores = mp.cpu_count()
-    max_processes = num_cores // 2 if num_cores < 20 else 10
-    search_threads = 10
-    max_processes = int(max_processes)
-    print(f"max_processes = {max_processes}, search_threads = {search_threads}")
-    config.play.max_processes = max_processes
-    config.play.search_threads = search_threads
+def init_user_game_info(user):
+    user_info = UserConfigEncoder().encode(UserConfig(
+        id=user.id,
+        user_name=user.user_name,
+        token=user.token))
+    return user_info
 
-    import cchess_alphazero.play_games.play_cli_invoke as play
-    play.start(config, user_id=user_id)
+
+@app.route('/register', methods=['POST'])
+def register():
+    content = json.loads(request.data)
+    user = user_service.register(content['user_name'], content['password'])
+    return Response(init_user_game_info(user), mimetype='application/json')
 
 
 if __name__ == '__main__':
