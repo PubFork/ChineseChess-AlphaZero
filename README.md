@@ -8,6 +8,18 @@ ChineseChess-AlphaZero为象棋版的AlphaZero模型。
 * 新增模型预测调用接口，扩展了模型的服务
 * 链接ActiveMQ消息队列，用来接收客户端发送的红棋操作
 * 后端模型根据消息队列接收的操作，预测黑棋操作，并将消息发送至消息队列
+* 用户中心，登陆注册
+* Redis服务器保存游戏服务器
+
+
+整体流程如下：
+![样例图片](screenshots/001.png)
+
+启动安卓APP后，会随机生成用户名和密码，发送服务器注册，服务器返回Token信息，APP拿着token进入房间，发送请求到服务器请求进入房间，后台根据token初始化单独的游戏房间，将信息保存在redis。
+APP每次通过向消息队列发送消息，进行对弈。
+
+整体架构如下：
+![样例图片](screenshots/002.png)
 
 本项目需要配合前端安卓端同时使用，安卓端链接：[点击](https://github.com/baifachuan/ChineseChess-Android)
 
@@ -15,7 +27,8 @@ ChineseChess-AlphaZero为象棋版的AlphaZero模型。
 
 * 提供一个ActiveMQ消息队列服务器
 * 创建 `receive_topic_name` 和 `send_topic_name` topic
-* 修改 `play_cli_invoke.py` 中 127 行的IP地址为自己的消息服务器的地址
+* 准备一个 `Redis` 服务器
+* 修改 `network_helper.py` 中相关的服务器地址
 * 运行 web下的 `web_server.py` 文件，启动服务器
 
 使用步骤：
@@ -32,7 +45,7 @@ ChineseChess-AlphaZero为象棋版的AlphaZero模型。
 * 断线重连
 * 重复消息处理
 * 消息乱序的情况
-* 多同时在线，观看等，尚不完善
+* 旁观
 
 待后续继续扩展
 
