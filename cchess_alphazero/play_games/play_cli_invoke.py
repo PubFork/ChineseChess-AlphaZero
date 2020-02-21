@@ -83,6 +83,11 @@ class PlayWithHuman:
                 client.disconnect()
 
             data = json.loads(msg.payload)
+
+            if data['user']['token'] != user.token:
+                print(f"illegality token:{data['user']['token']} except: {user.token}")
+                return
+
             self.env.board.calc_chessmans_moving_list()
             is_correct_chessman = False
             is_correct_position = False

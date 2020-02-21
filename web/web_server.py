@@ -3,7 +3,6 @@ import multiprocessing as mp
 import os
 import sys
 import time
-import uuid
 
 from flask import Flask, request, Response
 from flask import abort
@@ -44,7 +43,6 @@ def start():
         print("waiting init game house")
         time.sleep(3)
     return Response(json.dumps(content), mimetype='application/json')
-
 
 
 @app.route('/login', methods=['POST'])
